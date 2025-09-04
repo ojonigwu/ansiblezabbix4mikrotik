@@ -1,0 +1,18 @@
+---
+all:
+  hosts:
+    router1:
+      ansible_host: 192.168.1.1
+      ansible_connection: community.routeros.api
+      ansible_network_os: community.routeros.routeros
+      ansible_user: "{{ vault_router1_user }}" # Value pulled from vault
+      zabbix_hostip: 192.168.1.1
+      router_type: core
+
+    router2:
+      ansible_host: 192.168.1.2
+      ansible_connection: community.routeros.api
+      ansible_network_os: community.routeros.routeros
+      ansible_user: "{{ vault_router2_user }}" # Value pulled from vault
+      zabbix_hostip: 192.168.1.2
+      router_type: branch
