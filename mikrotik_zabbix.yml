@@ -1,0 +1,75 @@
+---
+- name: Configure MikroTik SNMP + Add to Zabbix
+  hosts: all
+  gather_facts: no
+
+  # Define variables (some should be moved to group_vars or vault)
+  vars:
+    zabbix_server_ip: "192.168.100.50"
+    snmp_community: "zabbix_ro"
+
+    zabbix_url: "http://192.168.100.50/zabbix/api_jsonrpc.php"
+    zabbix_user: "Admin"
+    zabbix_password: "zabbix" # <- Should be in Ansible Vault!
+
+    # Router type to Zabbix group & template mapping
+    zabbix_groups:
+      core: "Core Routers"
+      branch: "Branch Routers"
+      edge: "Edge Routers"
+
+    zabbix_templates:
+      core: "Template Core Router SNMP"
+      branch: "Template Branch Router SNMP"
+      edge: "Template Edge Router SNMP"
+
+  tasks:
+    - name: Enable SNMP service
+      community.routeros.command:
+        hostname: "{{ ansible_host }}"
+        username: "{{ ansible_user }}"
+        password: "{{ ansible_password }}" # <- Should be from a vault variable!
+        ssl: no
+        commands:
+          - /snmp set enabled=yes
+
+    - name: Configure SNMP Community (Idempotent and Secure)
+      community.routeros.api:
+        hostname: "{{ ansible_host }}"
+        username: "{{ ansible_user }}"
+        password: "{{ ansible_password }}" # <- Should be from a vault variable!
+        ssl: no
+        path: snmp/community
+        data:
+          name: "{{ snmp_community }}"
+          addresses: "{{ zabbix_server_ip }}/32"
+          read_access: "yes" # <- CRITICAL: Ensures read-only access
+        state: present
+
+    - name: "Ensure Zabbix Host Group '{{ zabbix_groups[router_type] }}' exists"
+      community.zabbix.zabbix_hostgroup:
+        server_url: "{{ zabbix_url }}"
+        login_user: "{{ zabbix_user }}"
+        login_password: "{{ zabbix_password }}"
+        name: "{{ zabbix_groups[router_type] }}"
+        state: present
+
+    - name: Create Zabbix host for MikroTik
+      community.zabbix.zabbix_host:
+        server_url: "{{ zabbix_url }}"
+        login_user: "{{ zabbix_user }}"
+        login_password: "{{ zabbix_password }}"
+        host_name: "{{ inventory_hostname }}"
+        visible_name: "{{ inventory_hostname }}"
+        host_groups:
+          - "{{ zabbix_groups[router_type] }}"
+        interfaces:
+          - type: 2  # SNMP interface
+            main: 1
+            useip: 1
+            ip: "{{ zabbix_hostip }}"
+            dns: ""
+            port: 161
+        templates:
+          - "{{ zabbix_templates[router_type] }}"
+        state: present
