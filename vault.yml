@@ -1,0 +1,15 @@
+---
+vault_router1_user: admin
+vault_router1_pass: ROUTER1_PASS
+
+vault_router2_user: admin
+vault_router2_pass: ROUTER2_PASS
+
+# A single user/pass for all devices is even better if possible:
+vault_mikrotik_user: admin
+vault_mikrotik_pass: COMMON_PASSWORD
+
+zabbix_user: "Admin"
+zabbix_password: "ZABBIX_PASS"
+
+# Run this command ansible-vault create vault.yml
